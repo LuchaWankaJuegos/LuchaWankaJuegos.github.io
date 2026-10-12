@@ -509,11 +509,17 @@ function pintarRanking(res){
   ranking.slice(0,5).forEach(fila);
   if(res&&res.pos>=5)fila(ranking[res.pos],res.pos);
   ol.hidden=!ranking.length;
-  const bb=document.getElementById('borrar');if(bb)bb.hidden=!ranking.length;
+  const bb=document.getElementById('borrar');if(bb)bb.hidden=!ranking.length||!modoAdmin||!!res;
   document.getElementById('record').textContent=ranking.length?'Récord: '+ranking[0].nom+' · '+ranking[0].pts+' puntos':'';
 }
 pintarRanking(null);
 const btnBorrar=document.getElementById('borrar');let borrarT=null;
+// modo administrador: 5 toques seguidos sobre "Récord" muestran el botón para borrar
+var modoAdmin=false;let toques=0,toquesT=null;
+document.getElementById('record').addEventListener('click',()=>{
+  toques++;clearTimeout(toquesT);toquesT=setTimeout(()=>{toques=0},2500);
+  if(toques>=5){toques=0;modoAdmin=!modoAdmin;pintarRanking(null);sfx('desbloqueo')}
+});
 btnBorrar.addEventListener('click',()=>{
   if(!btnBorrar.classList.contains('seguro')){btnBorrar.classList.add('seguro');btnBorrar.textContent='¿Seguro? Toca otra vez para borrar todo';
     clearTimeout(borrarT);borrarT=setTimeout(()=>{btnBorrar.classList.remove('seguro');btnBorrar.textContent='Borrar ranking'},3500);return}

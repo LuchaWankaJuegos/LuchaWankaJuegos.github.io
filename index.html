@@ -44,6 +44,9 @@ canvas{width:100%;height:100%;display:block}
 .ranking .nom{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ranking .com{color:var(--oro);font-style:italic;white-space:nowrap}
 .ranking .pts{font-weight:700}
+.info .borrar{order:9;background:none;border:1px solid var(--apagado);color:var(--apagado);border-radius:8px;font:inherit;font-size:.78rem;padding:3px 10px;cursor:pointer}
+.borrar.seguro{border-color:var(--alerta);color:var(--alerta);font-weight:700}
+.borrar:focus-visible{outline:3px solid var(--nieve);outline-offset:2px}
 .capa.fin .logo{display:none}
 /* orden: al inicio primero el nombre; al final primero el resultado */
 .info>*{order:20}
@@ -164,6 +167,7 @@ canvas{width:100%;height:100%;display:block}
         <button class="btn-ini" id="ini">¡Jugar!</button>
         <p class="girar">Gira tu celular a <b>horizontal</b> para jugar mejor</p>
         <ol class="ranking" id="ranking" aria-label="Ranking"></ol>
+        <button class="borrar" id="borrar" type="button">Borrar ranking</button>
         <p class="ayuda" id="record"></p>
       </div>
     </div>
@@ -240,6 +244,8 @@ const SFX={
   grito(){gritar(.6,1)},
   gritoCorto(){gritar(.32,1.12)},
   velocidad(){ruido(.32,1.6,500,4200,'bandpass')},
+  viento(){ruido(.38,1.4,350,3600,'bandpass');ruido(.3,.35,2500,900,'highpass')},          // fiuuu del salto
+  vientoLargo(){ruido(.6,2.1,300,4500,'bandpass');setTimeout(()=>ruido(.35,1.2,3800,600,'bandpass'),220)},
   aterriza(){tono('sine',130,55,.14,.25);ruido(.08,.2,700,200)},
   mano(){tono('triangle',950,720,.06,.08);ruido(.04,.12,3000,1500,'highpass')},
   paso(){ruido(.05,.35,1600,500);tono('sine',150,85,.06,.07)},
@@ -503,9 +509,18 @@ function pintarRanking(res){
   ranking.slice(0,5).forEach(fila);
   if(res&&res.pos>=5)fila(ranking[res.pos],res.pos);
   ol.hidden=!ranking.length;
+  const bb=document.getElementById('borrar');if(bb)bb.hidden=!ranking.length;
   document.getElementById('record').textContent=ranking.length?'Récord: '+ranking[0].nom+' · '+ranking[0].pts+' puntos':'';
 }
 pintarRanking(null);
+const btnBorrar=document.getElementById('borrar');let borrarT=null;
+btnBorrar.addEventListener('click',()=>{
+  if(!btnBorrar.classList.contains('seguro')){btnBorrar.classList.add('seguro');btnBorrar.textContent='¿Seguro? Toca otra vez para borrar todo';
+    clearTimeout(borrarT);borrarT=setTimeout(()=>{btnBorrar.classList.remove('seguro');btnBorrar.textContent='Borrar ranking'},3500);return}
+  clearTimeout(borrarT);ranking=[];try{localStorage.removeItem('rutaWankaRanking')}catch(e){}
+  btnBorrar.classList.remove('seguro');btnBorrar.textContent='Ranking borrado';pintarRanking(null);
+  setTimeout(()=>{btnBorrar.textContent='Borrar ranking'},2000);
+});
 function guardarRecord(){if(st.score>best){best=st.score;try{localStorage.setItem('rutaWankaBest',best)}catch(e){}}}
 
 /* ---------- lógica ---------- */
@@ -513,7 +528,7 @@ function pop(txt,col,x,y,grande,tipo){st.pops.push({txt,col,x,y,t:1,grande,tipo}
 function dice(txt,col,x,y){pop(txt,col,x,y,false,'dice')}
 function tecnica(t,x){st.pops.push({txt:'✓ '+NOMBRE[t],col:COL[t],x,y:GY+30,t:1,tipo:'tec'})}
 const GRITOS={salto:['¡Wooo!','¡Vamos!','¡Ea!'],rodar:['¡Woooh!','¡Vamos!'],sprawl:['¡Woooh!','¡Ahí está!']};
-function grita(t){dice(azar(GRITOS[t]),'#c8102e',st.p.wx-4,GY-74);sfx(t==='salto'?'gritoCorto':'grito');sfx('velocidad')}
+function grita(t){sfx(t==='salto'?'viento':'vientoLargo')}
 const DICHOS={jalon:['¡Oe, qué te pasa!','¡Ayayay!','¡Atatay, jovencito!','¡Qué apurado!'],
   entrada:['¡Asu, mi celular!','¡Bájame, oye!','¡Asu mare, qué fuerza!'],
   bombero:['¡Ay, mi espalda!','¡Jovencito, bájame!','¡Mis compras!'],

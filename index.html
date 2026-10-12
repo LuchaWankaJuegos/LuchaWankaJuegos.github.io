@@ -214,16 +214,17 @@ function ruido(dur,vol,f0,f1,tipo='lowpass'){
 function gritar(d,sube){
   const a=AC;if(!a||mudo)return;const t=a.currentTime;
   const comp=a.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=6;comp.connect(a.destination);
-  const g=a.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.38,t+.04);g.gain.setValueAtTime(.38,t+d*.55);g.gain.exponentialRampToValueAtTime(.0001,t+d);
-  const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3200;lp.connect(g).connect(comp);
+  const g=a.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.48,t+.035);g.gain.setValueAtTime(.48,t+d*.6);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;lp.connect(g).connect(comp);
   // formantes de la vocal "u" que se abre a "o"
-  const f1=a.createBiquadFilter();f1.type='peaking';f1.frequency.setValueAtTime(420,t);f1.frequency.linearRampToValueAtTime(600,t+d);f1.Q.value=2;f1.gain.value=14;
-  const f2=a.createBiquadFilter();f2.type='peaking';f2.frequency.setValueAtTime(900,t);f2.frequency.linearRampToValueAtTime(1100,t+d);f2.Q.value=3;f2.gain.value=10;
+  const f1=a.createBiquadFilter();f1.type='peaking';f1.frequency.setValueAtTime(480,t);f1.frequency.linearRampToValueAtTime(560,t+d);f1.Q.value=2.2;f1.gain.value=16;
+  const f2=a.createBiquadFilter();f2.type='peaking';f2.frequency.setValueAtTime(820,t);f2.frequency.linearRampToValueAtTime(900,t+d);f2.Q.value=3;f2.gain.value=11;
   f1.connect(f2).connect(lp);
-  [[0,'sawtooth',.5],[7,'square',.18]].forEach(([det,tipo,v])=>{
+  ruido(d*.8,.08,1400,700,'bandpass');                       // aire de la garganta
+  [[0,'sawtooth',.55],[-9,'sawtooth',.3]].forEach(([det,tipo,v])=>{
     const o=a.createOscillator();o.type=tipo;o.detune.value=det;
-    o.frequency.setValueAtTime(520*sube,t);o.frequency.exponentialRampToValueAtTime(1050*sube,t+d*.35);o.frequency.exponentialRampToValueAtTime(880*sube,t+d);
-    const vib=a.createOscillator(),vg=a.createGain();vib.frequency.value=7;vg.gain.value=25;vib.connect(vg).connect(o.frequency);
+    o.frequency.setValueAtTime(140*sube,t);o.frequency.exponentialRampToValueAtTime(255*sube,t+d*.3);o.frequency.exponentialRampToValueAtTime(205*sube,t+d);
+    const vib=a.createOscillator(),vg=a.createGain();vib.frequency.value=5.5;vg.gain.value=7;vib.connect(vg).connect(o.frequency);
     const m=a.createGain();m.gain.value=v;o.connect(m).connect(f1);o.start(t);vib.start(t);o.stop(t+d+.05);vib.stop(t+d+.05);
   });
 }
@@ -285,7 +286,7 @@ document.addEventListener('visibilitychange',()=>{
 function voz(txt,tono=1.1,rapidez=1.15,hombre=false){
   if(mudo)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);
     const v=hombre&&vozHombre?vozHombre:vozES;u.lang=v?v.lang:'es-ES';if(v)u.voice=v;u.rate=rapidez;
-    u.pitch=hombre?(vozHombre?Math.min(tono,1):.6):tono;u.volume=1;speechSynthesis.speak(u)}catch(e){}
+    u.pitch=hombre?(vozHombre?1.05:.72):tono;u.volume=1;speechSynthesis.speak(u)}catch(e){}
 }
 const vozProfe=(txt,rapidez=1.15)=>voz(txt,.95,rapidez,true);
 /* nitidez: dibujar a la resolución real de la pantalla */
@@ -451,7 +452,7 @@ function iniciar(){
   const sigue=st&&st.fin==='meta';
   if(!sigue){const n=inpNombre.value.trim();if(!n){inpNombre.classList.remove('falta');void inpNombre.offsetWidth;inpNombre.classList.add('falta');inpNombre.focus();return}
     try{localStorage.setItem('rutaWankaNombre',n)}catch(e){}partida=Date.now()}
-  pantallaCompleta();audio();ajustarResolucion();if(sigue)nuevo(st.nivel+1,st.score,st.vidas);else nuevo();capa.hidden=true;musica('juego');vozProfe('¡Date prisa, apúrate! ¡Llega temprano a clases!',1.25)}
+  pantallaCompleta();audio();ajustarResolucion();if(sigue)nuevo(st.nivel+1,st.score,st.vidas);else nuevo();capa.hidden=true;musica('juego');vozProfe('¡Date prisa! ¡Apúrate! ¡Llega temprano a clases!',1.4)}
 const btnSonido=document.getElementById('sonido');
 function pintarSonido(){btnSonido.textContent=mudo?'🔇':'🔊'}
 btnSonido.addEventListener('click',()=>{mudo=!mudo;try{localStorage.setItem('rutaWankaMudo',mudo?'1':'0')}catch(e){}
@@ -476,12 +477,13 @@ try{inpNombre.value=localStorage.getItem('rutaWankaNombre')||''}catch(e){}
 inpNombre.addEventListener('input',()=>inpNombre.classList.remove('falta'));
 let ranking=[],partida=null;
 try{ranking=JSON.parse(localStorage.getItem('rutaWankaRanking')||'[]');if(!Array.isArray(ranking))ranking=[]}catch(e){ranking=[]}
+const PUNTAJE_WANKA=500; // puntos mínimos para ganarse el título
 function comentario(pts,primero){
-  if(primero&&pts>0)return '¡ERES UN WANKA!';
   if(pts<100)return '¡Qué triste!';
   if(pts<200)return 'Realmente eres malo...';
-  if(pts<400)return 'Ahí te vas...';
-  return 'Casi me sorprendes';
+  if(pts<350)return 'Ahí te vas...';
+  if(pts<PUNTAJE_WANKA||!primero)return 'Casi me sorprendes';
+  return '¡ERES UN WANKA!';
 }
 function registrar(){
   const nom=(inpNombre.value.trim()||'Chuy').slice(0,14);
@@ -510,7 +512,7 @@ function guardarRecord(){if(st.score>best){best=st.score;try{localStorage.setIte
 function pop(txt,col,x,y,grande,tipo){st.pops.push({txt,col,x,y,t:1,grande,tipo});if(tipo==='tec')sfx('logro')}
 function dice(txt,col,x,y){pop(txt,col,x,y,false,'dice')}
 function tecnica(t,x){st.pops.push({txt:'✓ '+NOMBRE[t],col:COL[t],x,y:GY+30,t:1,tipo:'tec'})}
-const GRITOS={salto:['¡Wuu!','¡Yuju!','¡Wow!'],rodar:['¡Uuuuh!','¡Wuuuu!'],sprawl:['¡Wuuuu!','¡Uuuuh!']};
+const GRITOS={salto:['¡Wooo!','¡Vamos!','¡Ea!'],rodar:['¡Woooh!','¡Vamos!'],sprawl:['¡Woooh!','¡Ahí está!']};
 function grita(t){dice(azar(GRITOS[t]),'#c8102e',st.p.wx-4,GY-74);sfx(t==='salto'?'gritoCorto':'grito');sfx('velocidad')}
 const DICHOS={jalon:['¡Oe, qué te pasa!','¡Ayayay!','¡Atatay, jovencito!','¡Qué apurado!'],
   entrada:['¡Asu, mi celular!','¡Bájame, oye!','¡Asu mare, qué fuerza!'],

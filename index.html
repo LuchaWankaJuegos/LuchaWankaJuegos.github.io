@@ -102,6 +102,28 @@ canvas{width:100%;height:100%;display:block}
 .sonido{background:none;border:1px solid var(--apagado);color:var(--tinta);border-radius:8px;font-size:1rem;padding:2px 8px;cursor:pointer}
 .mision{font-family:var(--f-display);font-weight:400;color:var(--oro);letter-spacing:.06em;font-size:clamp(.75rem,2.8vw,.95rem)}
 @media (prefers-reduced-motion:reduce){.tec.on{transform:none}.tec.nuevo{animation:none}}
+.girar{display:none;font-size:.8rem;color:var(--oro);order:3}
+@media (orientation:portrait) and (pointer:coarse){.capa:not(.fin) .girar{display:block}}
+/* celular en horizontal: flechas a la izquierda, juego al centro, técnicas a la derecha */
+@media (orientation:landscape) and (max-height:540px){
+  .app{display:grid;max-width:none;width:100%;height:100%;margin:0;
+    grid-template-columns:minmax(110px,1fr) auto minmax(150px,1fr);grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:"hud hud hud" "mov esc tec";gap:6px 10px;padding-block:6px;
+    padding-inline:max(10px,env(safe-area-inset-left,0px)) max(10px,env(safe-area-inset-right,0px))}
+  .hud{grid-area:hud;font-size:.85rem;justify-content:center;gap:24px}
+  .hud b{font-size:.95rem}
+  .escena{grid-area:esc;height:min(100%,calc((100vw - 300px) * .5625));width:auto;aspect-ratio:16/9;align-self:center;justify-self:center}
+  .mando{display:contents}
+  .grupo.mov{grid-area:mov;grid-template-columns:1fr 1fr;gap:8px}
+  .grupo.tecs{grid-area:tec;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:6px}
+  .tec{font-size:clamp(.6rem,1.45vw,.8rem);border-radius:10px;padding:2px 3px;overflow-wrap:anywhere;hyphens:auto;text-align:center}
+  .tec small{display:none}
+  .tec[data-t="izq"],.tec[data-t="der"]{font-size:2rem}
+  .ayuda.pc{display:none}
+  .capa h1{font-size:clamp(.9rem,2.4vw,1.4rem)}
+  .capa p,.nombre-lbl{font-size:clamp(.72rem,1.7vw,.9rem)}
+  .logo{width:min(90px,40%)}
+}
 /* celular en vertical: mando más grande y botones de técnica en 2 columnas para tocar con el pulgar */
 @media (orientation:portrait) and (max-width:620px){
   .app{gap:8px;padding-block:8px}
@@ -140,6 +162,7 @@ canvas{width:100%;height:100%;display:block}
         <p class="comentario" id="coment" hidden></p>
         <label class="nombre-lbl" id="nombreBox" for="nombre"><span class="lbl-txt" id="lblTxt">Crea tu nombre de usuario</span><input id="nombre" maxlength="14" autocomplete="off" placeholder="Ej: Chuy"></label>
         <button class="btn-ini" id="ini">¡Jugar!</button>
+        <p class="girar">Gira tu celular a <b>horizontal</b> para jugar mejor</p>
         <ol class="ranking" id="ranking" aria-label="Ranking"></ol>
         <p class="ayuda" id="record"></p>
       </div>
@@ -236,7 +259,10 @@ const SFX={
 };
 function sfx(n){try{audio();SFX[n]&&SFX[n]()}catch(e){}}
 let vozES=null;
-function cargarVoz(){try{const v=speechSynthesis.getVoices();vozES=v.find(x=>/es[-_](PE|419|MX|US)/i.test(x.lang))||v.find(x=>/^es/i.test(x.lang))||null}catch(e){}}
+let vozHombre=null;
+const NOMBRES_H=/(jorge|diego|juan|carlos|pablo|ra[uú]l|[aá]lvaro|enrique|andr[eé]s|miguel|gerardo|tom[aá]s|alonso|dar[ií]o|jos[eé]|male|hombre|masculin)/i;
+function cargarVoz(){try{const v=speechSynthesis.getVoices();vozES=v.find(x=>/es[-_](PE|419|MX|US)/i.test(x.lang))||v.find(x=>/^es/i.test(x.lang))||null;
+  const es=v.filter(x=>/^es/i.test(x.lang));vozHombre=es.find(x=>NOMBRES_H.test(x.name)&&/(PE|419|MX|US)/i.test(x.lang))||es.find(x=>NOMBRES_H.test(x.name))||null}catch(e){}}
 try{speechSynthesis.onvoiceschanged=cargarVoz;cargarVoz()}catch(e){}
 /* música: "Neon Firestorm" — intro en el menú, el resto mientras se juega */
 const MUS={menu:new Audio('musica-menu.mp3'),juego:new Audio('musica-juego.mp3')};
@@ -256,9 +282,12 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden){for(const n in MUS)MUS[n].pause()}
   else if(musActual&&!mudo)MUS[musActual].play().catch(()=>{});
 });
-function voz(txt,tono=1.1,rapidez=1.15){
-  if(mudo)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang=vozES?vozES.lang:'es-ES';if(vozES)u.voice=vozES;u.rate=rapidez;u.pitch=tono;u.volume=1;speechSynthesis.speak(u)}catch(e){}
+function voz(txt,tono=1.1,rapidez=1.15,hombre=false){
+  if(mudo)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);
+    const v=hombre&&vozHombre?vozHombre:vozES;u.lang=v?v.lang:'es-ES';if(v)u.voice=v;u.rate=rapidez;
+    u.pitch=hombre?(vozHombre?Math.min(tono,1):.6):tono;u.volume=1;speechSynthesis.speak(u)}catch(e){}
 }
+const vozProfe=(txt,rapidez=1.15)=>voz(txt,.95,rapidez,true);
 /* nitidez: dibujar a la resolución real de la pantalla */
 let ESC=1;
 function ajustarResolucion(){
@@ -414,11 +443,15 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{const m=mapa[e.key];if(m==='izq'||m==='der')tecla[m]=false});
 const capa=document.getElementById('capa');
 document.getElementById('ini').addEventListener('click',iniciar);
+function pantallaCompleta(){try{
+  if(!matchMedia('(pointer:coarse)').matches)return;const el=document.documentElement;
+  if(!document.fullscreenElement&&el.requestFullscreen)el.requestFullscreen({navigationUI:'hide'}).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}).catch(()=>{});
+}catch(e){}}
 function iniciar(){
   const sigue=st&&st.fin==='meta';
   if(!sigue){const n=inpNombre.value.trim();if(!n){inpNombre.classList.remove('falta');void inpNombre.offsetWidth;inpNombre.classList.add('falta');inpNombre.focus();return}
     try{localStorage.setItem('rutaWankaNombre',n)}catch(e){}partida=Date.now()}
-  audio();ajustarResolucion();if(sigue)nuevo(st.nivel+1,st.score,st.vidas);else nuevo();capa.hidden=true;musica('juego');voz('¡Date prisa, date prisa! ¡Llega temprano a clases!',1.2,1.3)}
+  pantallaCompleta();audio();ajustarResolucion();if(sigue)nuevo(st.nivel+1,st.score,st.vidas);else nuevo();capa.hidden=true;musica('juego');vozProfe('¡Date prisa, apúrate! ¡Llega temprano a clases!',1.25)}
 const btnSonido=document.getElementById('sonido');
 function pintarSonido(){btnSonido.textContent=mudo?'🔇':'🔊'}
 btnSonido.addEventListener('click',()=>{mudo=!mudo;try{localStorage.setItem('rutaWankaMudo',mudo?'1':'0')}catch(e){}
@@ -489,7 +522,7 @@ const TARDE=['¡Eres un vago! Llegaste tarde a tu entrenamiento.','Ni intentes e
   '¿Otra vez tarde? Hoy te toca barrer el tapiz.','El profe ya cerró la puerta. Mañana sales más temprano.'];
 function profe(txt,seg){
   document.getElementById('profeTxt').textContent=txt;
-  const el=document.getElementById('profe');el.hidden=true;void el.offsetWidth;el.hidden=false;st.profeT=seg;voz(txt,.85);
+  const el=document.getElementById('profe');el.hidden=true;void el.offsetWidth;el.hidden=false;st.profeT=seg;vozProfe(txt,1.2);
 }
 function perderVida(x){
   const p=st.p;st.vidas--;p.inv=1.4;
@@ -504,7 +537,7 @@ function golpe(o){
   perderVida();
 }
 function terminar(t,txt){if(!st.jugando)return;st.jugando=false;document.getElementById('profe').hidden=true;st.fin='pierde';guardarRecord();
-  sfx('pierde');musica(null);const res=registrar();voz(t+'. '+res.com,1);setTimeout(()=>{mostrarCapa(t,txt,'Inténtalo otra vez','MISIÓN FALLIDA',res);musica('menu')},1400)}
+  sfx('pierde');musica(null);const res=registrar();vozProfe(t+'. '+res.com,1.05);setTimeout(()=>{mostrarCapa(t,txt,'Inténtalo otra vez','MISIÓN FALLIDA',res);musica('menu')},1400)}
 
 function sueloEn(wx,y){
   for(const o of st.obs){
@@ -623,7 +656,7 @@ function update(dt){
   st.obs=st.obs.filter(o=>o.x>p.wx-500||o.t==='zanja');
   if(p.wx>=META+100&&st.jugando){
     const bono=Math.round(st.tiempo)*5;st.score+=100+bono;st.jugando=false;st.fin='meta';guardarRecord();document.getElementById('profe').hidden=true;
-    sfx('meta');voz('¡Llegaste a tiempo! ¡Bien hecho, Chuy!',.9);musica(null);setTimeout(()=>musica('menu'),1800);
+    sfx('meta');vozProfe('¡Llegaste a tiempo! ¡Bien hecho, Chuy!');musica(null);setTimeout(()=>musica('menu'),1800);
     const sig=TIEMPO[Math.min(st.nivel,3)];
     const res=registrar();
     setTimeout(()=>mostrarCapa('¡Llegaste a Lucha Wanka!','Te sobraron '+Math.round(st.tiempo)+' s (+'+bono+' puntos). Llevas '+st.score+' puntos. Siguiente misión: mañana tienes solo '+sig+' segundos para llegar, y con menos ayudas.','Nivel '+(st.nivel+1),'MISIÓN CUMPLIDA',res),500);

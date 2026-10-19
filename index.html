@@ -337,6 +337,7 @@ function ajustarResolucion(){
 addEventListener('resize',ajustarResolucion);
 const TIEMPO=[90,80,72,65];
 const LOGO=new Image();LOGO.src='logo.png';
+['sorprendido.jpg','yo-amo.jpg'].forEach(s=>{const i=new Image();i.src=s});
 let st,best=0;
 try{best=+localStorage.getItem('rutaWankaBest')||0}catch(e){}
 const tecla={izq:false,der:false};
@@ -576,12 +577,14 @@ function mostrarCapa(titulo,texto,boton,mision,res){
   const c=document.getElementById('coment');c.hidden=!res;if(res)c.textContent=res.com;
   document.getElementById('nombreBox').hidden=false;pintarNiveles();
   document.getElementById('lblTxt').textContent='Tu nombre de luchador';
+  const rt=document.querySelector('.retrato'),[rs,ra]=mision==='MISIÓN FALLIDA'?['sorprendido.jpg','El luchador de Lucha Wanka sorprendido']:mision==='¡JUEGO COMPLETADO!'?['yo-amo.jpg','Yo amo Lucha Wanka: el luchador te señala']:['personaje.jpg','El luchador de Lucha Wanka con los brazos cruzados'];
+  if(rt&&!rt.src.endsWith(rs)){rt.src=rs;rt.alt=ra}
   capa.classList.add('fin');pintarRanking(res);
   capa.hidden=false;document.querySelector('.info').scrollTop=0;
 }
 /* ---------- ranking (se guarda en este aparato) ---------- */
 const inpNombre=document.getElementById('nombre');
-try{inpNombre.value=localStorage.getItem('rutaWankaNombre')||''}catch(e){}
+inpNombre.value=''; // cada jugador escribe su nombre al entrar
 inpNombre.addEventListener('input',()=>inpNombre.classList.remove('falta'));
 let ranking=[],partida=null;
 try{ranking=JSON.parse(localStorage.getItem('rutaWankaRanking')||'[]');if(!Array.isArray(ranking))ranking=[]}catch(e){ranking=[]}
@@ -2225,7 +2228,8 @@ function fondoParque(){
 function njArco(){const x=sx(nj.FIN);if(x>W+120||x<-160)return;
   cx.fillStyle='#8a7a68';cx.fillRect(x-60,GY-118,18,112);cx.fillRect(x+42,GY-118,18,112);
   cx.fillStyle='#a49482';cx.beginPath();cx.moveTo(x-66,GY-112);cx.quadraticCurveTo(x,GY-160,x+66,GY-112);cx.lineTo(x+66,GY-100);cx.quadraticCurveTo(x,GY-146,x-66,GY-100);cx.fill();
-  cx.fillStyle='#f3efe6';cx.fillRect(x-48,GY-144,96,16);cx.strokeStyle='#1a1420';cx.lineWidth=1.5;cx.strokeRect(x-48,GY-144,96,16);
+  if(LOGO.complete&&LOGO.naturalWidth)cx.drawImage(LOGO,x-38,GY-210,76,64);
+  cx.fillStyle='#f3efe6';cx.fillRect(x-68,GY-144,136,16);cx.strokeStyle='#1a1420';cx.lineWidth=1.5;cx.strokeRect(x-68,GY-144,136,16);
   cx.fillStyle='#b3122a';cx.font='700 9px "Barlow Condensed",sans-serif';cx.textAlign='center';cx.fillText('¡AQUÍ ENTRENA LUCHA WANKA!',x,GY-133)}
 function njNinja(o){
   const x=sx(o.x);if(x<-120||x>W+120)return;

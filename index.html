@@ -50,7 +50,7 @@ canvas{width:100%;height:100%;display:block}
 .capa.fin .logo{display:none}
 /* orden: al inicio primero el nombre; al final primero el resultado */
 .info>*{order:20}
-.capa:not(.fin) .logo{order:0}.capa:not(.fin) #nombreBox{order:1}.capa:not(.fin) #ini{display:none}.capa:not(.fin) #niveles{order:2}.capa:not(.fin) #progreso{order:3}.capa:not(.fin) #mis{order:3}
+.capa:not(.fin) .logo{order:0}.capa:not(.fin) #nombreBox{order:1}.capa:not(.fin) #ini{order:2;font-size:clamp(1rem,4vw,1.3rem);padding:8px 34px}.capa:not(.fin) #niveles{order:3}.capa:not(.fin) #progreso{order:3}.capa:not(.fin) #mis{order:3}
 .capa:not(.fin) #tit{order:4}.capa:not(.fin) #txt{order:5}.capa:not(.fin) #guia{order:6}.capa:not(.fin) #ranking{order:7}.capa:not(.fin) #record{order:8}
 .capa.fin #mis{order:1}.capa.fin #tit{order:2}.capa.fin #txt{order:3}.capa.fin #coment{order:4}.capa.fin #nombreBox{order:5}.capa.fin #ini{order:6}.capa.fin #niveles{order:7}.capa.fin #progreso{order:7}.capa.fin #ranking{order:7}.capa.fin #record{order:8}
 .capa:not(.fin) .lbl-txt{font-family:var(--f-display);font-weight:400;font-size:clamp(.85rem,3.4vw,1.15rem);letter-spacing:.02em}
@@ -68,6 +68,18 @@ canvas{width:100%;height:100%;display:block}
 .nivel:hover{filter:brightness(1.15)}.nivel:focus-visible{outline:3px solid var(--nieve);outline-offset:2px}
 .capa .progreso{font-size:clamp(.66rem,2.4vw,.85rem);color:var(--oro);font-weight:700}
 .capa.fin .niveles .nivel{padding:3px 4px}
+.lbl-txt.aviso{color:var(--alerta)!important}
+/* pantallas chicas: menú compacto para que todo quepa */
+@media (max-height:440px),(max-width:540px){
+  .capa:not(.fin) .retrato{display:none}
+  .capa.fin .retrato{width:26%}
+  .capa:not(.fin) .logo{width:min(84px,30%)}
+  .capa:not(.fin) #txt,.capa:not(.fin) #tit,.capa:not(.fin) #mis{display:none}
+  .niveles{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:min(300px,100%)}
+  .nivel{flex-direction:row;justify-content:center;gap:5px;padding:4px 6px}
+  .nivel .nv-t{font-size:.62rem}.nivel .nv-n{font-size:.78rem}.nivel .nv-e{font-size:.62rem}
+  .info{gap:4px;padding:6px 8px}
+}
 .capa h1{font-family:var(--f-display);font-weight:400;font-size:clamp(1rem,4.6vw,1.9rem);margin:0;line-height:1;text-wrap:balance;color:var(--oro)}
 .capa p{margin:0;font-size:clamp(.8rem,3.1vw,1.05rem);max-width:38ch;line-height:1.25}
 .btn-ini{font-family:var(--f-display);font-size:clamp(.9rem,3.6vw,1.1rem);background:var(--oro);color:#1a1210;border:0;border-radius:8px;padding:8px 22px;cursor:pointer}
@@ -504,8 +516,12 @@ function pintarNiveles(){const pr=leerProg()[claveNom()]||{};
     e.textContent=d&&d.ok?'✓ '+d.pts+' pts':d?'Mejor: '+d.pts+' pts':'Sin pasar';e.parentElement.classList.toggle('ok',!!(d&&d.ok))}
   const ok=hechosDe(pr),g=document.getElementById('progreso');
   g.textContent=ok.length===4?'🏆 ¡Completaste Ruta Wanka!':ok.length?'Pasaste '+ok.length+' de 4 · Te falta: '+[1,2,3,4].filter(n=>!ok.includes(n)).map(n=>'Nivel '+n).join(', '):'Pasa los 4 niveles para completar el juego'}
+function pideNombre(){inpNombre.classList.remove('falta');void inpNombre.offsetWidth;inpNombre.classList.add('falta');
+  const l=document.getElementById('lblTxt');l.textContent='✍️ Primero escribe tu nombre';l.classList.add('aviso');
+  try{inpNombre.scrollIntoView({block:'center',behavior:'smooth'})}catch(e){}inpNombre.focus();
+  clearTimeout(pideNombre.t);pideNombre.t=setTimeout(()=>{l.classList.remove('aviso');l.textContent=capa.classList.contains('fin')?'Tu nombre de luchador':'Crea tu nombre de usuario'},2600)}
 function jugarNivel(n){
-  const nm=inpNombre.value.trim();if(!nm){inpNombre.classList.remove('falta');void inpNombre.offsetWidth;inpNombre.classList.add('falta');inpNombre.focus();return false}
+  const nm=inpNombre.value.trim();if(!nm){pideNombre();return false}
   try{localStorage.setItem('rutaWankaNombre',nm)}catch(e){}
   partida=Date.now();nivelActual=n;
   pantallaCompleta();audio();ajustarResolucion();
